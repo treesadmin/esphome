@@ -158,9 +158,9 @@ def get_fingerprint(config):
 
     sha1 = hashlib.sha1(cert_der).hexdigest()
 
-    safe_print("SHA1 Fingerprint: " + color(Fore.CYAN, sha1))
+    safe_print(f"SHA1 Fingerprint: {color(Fore.CYAN, sha1)}")
     safe_print(
-        "Copy the string above into mqtt.ssl_fingerprints section of {}"
-        "".format(CORE.config_path)
+        f"Copy the string above into mqtt.ssl_fingerprints section of {CORE.config_path}"
     )
+
     return 0

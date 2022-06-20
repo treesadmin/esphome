@@ -184,6 +184,5 @@ def get_platform(domain, platform):
     return _lookup_module(full)
 
 
-_COMPONENT_CACHE = {}
 CORE_COMPONENTS_PATH = (Path(__file__).parent / "components").resolve()
-_COMPONENT_CACHE["esphome"] = ComponentManifest(esphome.core.config)
+_COMPONENT_CACHE = {"esphome": ComponentManifest(esphome.core.config)}

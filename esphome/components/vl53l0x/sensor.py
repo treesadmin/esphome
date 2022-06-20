@@ -25,8 +25,11 @@ CONF_LONG_RANGE = "long_range"
 
 def check_keys(obj):
     if obj[CONF_ADDRESS] != 0x29 and CONF_ENABLE_PIN not in obj:
-        msg = "Address other then 0x29 requires enable_pin definition to allow sensor\r"
-        msg += "re-addressing. Also if you have more then one VL53 device on the same\r"
+        msg = (
+            "Address other then 0x29 requires enable_pin definition to allow sensor\r"
+            + "re-addressing. Also if you have more then one VL53 device on the same\r"
+        )
+
         msg += "i2c bus, then all VL53 devices must have enable_pin defined."
         raise cv.Invalid(msg)
     return obj

@@ -126,7 +126,7 @@ def wizard_write(path, **kwargs):
     platform = kwargs["platform"]
 
     write_file(path, wizard_file(**kwargs))
-    storage = StorageJSON.from_wizard(name, name + ".local", platform, board)
+    storage = StorageJSON.from_wizard(name, f"{name}.local", platform, board)
     storage_path = ext_storage_path(os.path.dirname(path), os.path.basename(path))
     storage.save(storage_path)
 
@@ -168,15 +168,15 @@ def strip_accents(value):
 def wizard(path):
     if not path.endswith(".yaml") and not path.endswith(".yml"):
         safe_print(
-            "Please make your configuration file {} have the extension .yaml or .yml"
-            "".format(color(Fore.CYAN, path))
+            f"Please make your configuration file {color(Fore.CYAN, path)} have the extension .yaml or .yml"
         )
+
         return 1
     if os.path.exists(path):
         safe_print(
-            "Uh oh, it seems like {} already exists, please delete that file first "
-            "or chose another configuration file.".format(color(Fore.CYAN, path))
+            f"Uh oh, it seems like {color(Fore.CYAN, path)} already exists, please delete that file first or chose another configuration file."
         )
+
         return 2
     safe_print("Hi there!")
     sleep(1.5)
@@ -199,10 +199,9 @@ def wizard(path):
     )
     sleep(1)
     safe_print(
-        "For example, I like calling the node in my living room {}.".format(
-            color(Fore.BOLD_WHITE, "livingroom")
-        )
+        f'For example, I like calling the node in my living room {color(Fore.BOLD_WHITE, "livingroom")}.'
     )
+
     safe_print()
     sleep(1)
     name = input(color(Fore.BOLD_WHITE, "(name): "))
@@ -222,13 +221,11 @@ def wizard(path):
             name = strip_accents(name).lower().replace(" ", "-")
             name = strip_accents(name).lower().replace("_", "-")
             name = "".join(c for c in name if c in ALLOWED_NAME_CHARS)
-            safe_print(
-                'Shall I use "{}" as the name instead?'.format(color(Fore.CYAN, name))
-            )
+            safe_print(f'Shall I use "{color(Fore.CYAN, name)}" as the name instead?')
             sleep(0.5)
             name = default_input("(name [{}]): ", name)
 
-    safe_print('Great! Your node is now called "{}".'.format(color(Fore.CYAN, name)))
+    safe_print(f'Great! Your node is now called "{color(Fore.CYAN, name)}".')
     sleep(1)
     safe_print_step(2, ESP_BIG)
     safe_print(
@@ -252,12 +249,13 @@ def wizard(path):
             break
         except vol.Invalid:
             safe_print(
-                "Unfortunately, I can't find an espressif microcontroller called "
-                '"{}". Please try again.'.format(platform)
+                f"""Unfortunately, I can't find an espressif microcontroller called "{platform}". Please try again."""
             )
+
     safe_print(
-        "Thanks! You've chosen {} as your platform.".format(color(Fore.CYAN, platform))
+        f"Thanks! You've chosen {color(Fore.CYAN, platform)} as your platform."
     )
+
     safe_print()
     sleep(1)
 
@@ -274,20 +272,18 @@ def wizard(path):
         "Next, I need to know what " + color(Fore.GREEN, "board") + " you're using."
     )
     sleep(0.5)
-    safe_print(
-        "Please go to {} and choose a board.".format(color(Fore.GREEN, board_link))
-    )
+    safe_print(f"Please go to {color(Fore.GREEN, board_link)} and choose a board.")
     if platform == "ESP32":
         safe_print("(Type " + color(Fore.GREEN, "esp01_1m") + " for Sonoff devices)")
     safe_print()
     # Don't sleep because user needs to copy link
     if platform == "ESP32":
-        safe_print('For example "{}".'.format(color(Fore.BOLD_WHITE, "nodemcu-32s")))
+        safe_print(f'For example "{color(Fore.BOLD_WHITE, "nodemcu-32s")}".')
         boards = list(ESP32_BOARD_PINS.keys())
     else:
-        safe_print('For example "{}".'.format(color(Fore.BOLD_WHITE, "nodemcuv2")))
+        safe_print(f'For example "{color(Fore.BOLD_WHITE, "nodemcuv2")}".')
         boards = list(ESP8266_BOARD_PINS.keys())
-    safe_print("Options: {}".format(", ".join(sorted(boards))))
+    safe_print(f'Options: {", ".join(sorted(boards))}')
 
     while True:
         board = input(color(Fore.BOLD_WHITE, "(board): "))
@@ -303,8 +299,9 @@ def wizard(path):
             safe_print()
 
     safe_print(
-        "Way to go! You've chosen {} as your board.".format(color(Fore.CYAN, board))
+        f"Way to go! You've chosen {color(Fore.CYAN, board)} as your board."
     )
+
     safe_print()
     sleep(1)
 
@@ -318,7 +315,7 @@ def wizard(path):
         + f" (the name) of the WiFi network {name} should connect to?"
     )
     sleep(1.5)
-    safe_print('For example "{}".'.format(color(Fore.BOLD_WHITE, "Abraham Linksys")))
+    safe_print(f'For example "{color(Fore.BOLD_WHITE, "Abraham Linksys")}".')
     while True:
         ssid = input(color(Fore.BOLD_WHITE, "(ssid): "))
         try:
@@ -328,17 +325,17 @@ def wizard(path):
             safe_print(
                 color(
                     Fore.RED,
-                    'Unfortunately, "{}" doesn\'t seem to be a valid SSID. '
-                    "Please try again.".format(ssid),
+                    f"""Unfortunately, "{ssid}" doesn\'t seem to be a valid SSID. Please try again.""",
                 )
             )
+
             safe_print()
             sleep(1)
 
     safe_print(
-        'Thank you very much! You\'ve just chosen "{}" as your SSID.'
-        "".format(color(Fore.CYAN, ssid))
+        f"""Thank you very much! You\'ve just chosen "{color(Fore.CYAN, ssid)}" as your SSID."""
     )
+
     safe_print()
     sleep(0.75)
 
@@ -348,7 +345,7 @@ def wizard(path):
         + " of the WiFi network so that I can connect to it (Leave empty for no password)"
     )
     safe_print()
-    safe_print('For example "{}"'.format(color(Fore.BOLD_WHITE, "PASSWORD42")))
+    safe_print(f'For example "{color(Fore.BOLD_WHITE, "PASSWORD42")}"')
     sleep(0.5)
     psk = input(color(Fore.BOLD_WHITE, "(PSK): "))
     safe_print(

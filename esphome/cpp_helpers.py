@@ -45,10 +45,9 @@ async def register_component(var, config):
     id_ = str(var.base)
     if id_ not in CORE.component_ids:
         raise ValueError(
-            "Component ID {} was not declared to inherit from Component, "
-            "or was registered twice. Please create a bug report with your "
-            "configuration.".format(id_)
+            f"Component ID {id_} was not declared to inherit from Component, or was registered twice. Please create a bug report with your configuration."
         )
+
     CORE.component_ids.remove(id_)
     if CONF_SETUP_PRIORITY in config:
         add(var.set_setup_priority(config[CONF_SETUP_PRIORITY]))
@@ -59,10 +58,7 @@ async def register_component(var, config):
 
 
 async def register_parented(var, value):
-    if isinstance(value, ID):
-        paren = await get_variable(value)
-    else:
-        paren = value
+    paren = await get_variable(value) if isinstance(value, ID) else value
     add(var.set_parent(paren))
 
 

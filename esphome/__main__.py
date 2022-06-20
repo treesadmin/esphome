@@ -64,15 +64,17 @@ def choose_prompt(options):
 
 
 def choose_upload_log_host(default, check_default, show_ota, show_mqtt, show_api):
-    options = []
-    for port in get_serial_ports():
-        options.append((f"{port.path} ({port.description})", port.path))
+    options = [
+        (f"{port.path} ({port.description})", port.path)
+        for port in get_serial_ports()
+    ]
+
     if (show_ota and "ota" in CORE.config) or (show_api and "api" in CORE.config):
         options.append((f"Over The Air ({CORE.address})", CORE.address))
         if default == "OTA":
             return CORE.address
     if show_mqtt and "mqtt" in CORE.config:
-        options.append(("MQTT ({})".format(CORE.config["mqtt"][CONF_BROKER]), "MQTT"))
+        options.append((f'MQTT ({CORE.config["mqtt"][CONF_BROKER]})', "MQTT"))
         if default == "OTA":
             return "MQTT"
     if default is not None:

@@ -131,7 +131,7 @@ class DNSQuestion(DNSEntry):
         """Returns true if the question is answered by the record"""
         return (
             self.class_ == rec.class_
-            and (self.type == rec.type or self.type == _TYPE_ANY)
+            and self.type in [rec.type, _TYPE_ANY]
             and self.name == rec.name
         )
 
@@ -300,7 +300,7 @@ class DNSIncoming(QuietLogger):
                 break
             t = length & 0xC0
             if t == 0x00:
-                result = "".join((result, self.read_utf(off, length) + "."))
+                result = "".join((result, f"{self.read_utf(off, length)}."))
                 off += length
             elif t == 0xC0:
                 if next_ < 0:
@@ -312,11 +312,7 @@ class DNSIncoming(QuietLogger):
             else:
                 raise IncomingDecodeError(f"Bad domain name at {off}")
 
-        if next_ >= 0:
-            self.offset = next_
-        else:
-            self.offset = off
-
+        self.offset = next_ if next_ >= 0 else off
         return result
 
 
@@ -461,8 +457,7 @@ class Engine(threading.Thread):
                     rr, _, _ = select.select(rs, [], [], self.timeout)
                     if not self.zc.done:
                         for socket_ in rr:
-                            reader = self.readers.get(socket_)
-                            if reader:
+                            if reader := self.readers.get(socket_):
                                 reader.handle_read(socket_)
 
                 except OSError as e:
@@ -498,9 +493,7 @@ class Listener(QuietLogger):
 
         self.data = data
         msg = DNSIncoming(data)
-        if not msg.valid or msg.is_query():
-            pass
-        else:
+        if msg.valid and not msg.is_query():
             self.zc.handle_response(msg)
 
 
@@ -574,8 +567,9 @@ class DashboardStatus(RecordUpdateListener, threading.Thread):
         for host, records in self.cache.items():
             if host not in self.query_hosts:
                 continue
-            new_records = [rec for rec in records if not rec.is_removable(time.time())]
-            if new_records:
+            if new_records := [
+                rec for rec in records if not rec.is_removable(time.time())
+            ]:
                 new_cache[host] = new_records
         self.cache = new_cache
         self.on_update({key: self.host_status(key) for key in self.key_to_host})

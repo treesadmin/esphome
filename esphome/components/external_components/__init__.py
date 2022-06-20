@@ -59,12 +59,9 @@ def validate_source_shorthand(value):
         raise cv.Invalid(
             "Source is not a file system path or in expected github://username/name[@branch-or-tag] format!"
         )
-    conf = {
-        CONF_TYPE: TYPE_GIT,
-        CONF_URL: f"https://github.com/{m.group(1)}/{m.group(2)}.git",
-    }
-    if m.group(3):
-        conf[CONF_REF] = m.group(3)
+    conf = {CONF_TYPE: TYPE_GIT, CONF_URL: f"https://github.com/{m[1]}/{m[2]}.git"}
+    if m[3]:
+        conf[CONF_REF] = m[3]
     return SOURCE_SCHEMA(conf)
 
 

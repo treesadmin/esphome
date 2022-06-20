@@ -305,9 +305,7 @@ class FloatLiteral(Literal):
         self.f = value
 
     def __str__(self):
-        if math.isnan(self.f):
-            return "NAN"
-        return f"{self.f}f"
+        return "NAN" if math.isnan(self.f) else f"{self.f}f"
 
 
 def safe_exp(obj: SafeExpType) -> Expression:
@@ -348,14 +346,14 @@ def safe_exp(obj: SafeExpType) -> Expression:
         return float_
     if isinstance(obj, ID):
         raise ValueError(
-            "Object {} is an ID. Did you forget to register the variable?"
-            "".format(obj)
+            f"Object {obj} is an ID. Did you forget to register the variable?"
         )
+
     if inspect.isgenerator(obj):
         raise ValueError(
-            "Object {} is a coroutine. Did you forget to await the expression with "
-            "'await'?".format(obj)
+            f"Object {obj} is a coroutine. Did you forget to await the expression with 'await'?"
         )
+
     raise ValueError("Object is not an expression", obj)
 
 
@@ -626,10 +624,7 @@ async def process_lambda(
             parts[i * 3 + 1] = var.value()
             continue
 
-        if parts[i * 3 + 2] == ".":
-            parts[i * 3 + 1] = var._
-        else:
-            parts[i * 3 + 1] = var
+        parts[i * 3 + 1] = var._ if parts[i * 3 + 2] == "." else var
         parts[i * 3 + 2] = ""
 
     if isinstance(value, ESPHomeDataBase) and value.esp_range is not None:
@@ -703,7 +698,7 @@ class MockObj(Expression):
         return str(self.base)
 
     def __repr__(self):
-        return "MockObj<{}>".format(str(self.base))
+        return f"MockObj<{str(self.base)}>"
 
     @property
     def _(self) -> "MockObj":
@@ -761,7 +756,7 @@ class MockObjEnum(MockObj):
         self._is_class = kwargs.pop("is_class")
         base = kwargs.pop("base")
         if self._is_class:
-            base = base + "::" + self._enum
+            base = f"{base}::{self._enum}"
             kwargs["op"] = "::"
         kwargs["base"] = base
         MockObj.__init__(self, *args, **kwargs)
@@ -790,10 +785,7 @@ class MockObjClass(MockObj):
     def inherits_from(self, other: "MockObjClass") -> bool:
         if self == other:
             return True
-        for parent in self._parents:
-            if parent == other:
-                return True
-        return False
+        return any(parent == other for parent in self._parents)
 
     def template(self, *args: SafeExpType) -> "MockObjClass":
         if len(args) != 1 or not isinstance(args[0], TemplateArguments):

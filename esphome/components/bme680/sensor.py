@@ -156,8 +156,7 @@ async def to_code(config):
     cg.add(var.set_iir_filter(IIR_FILTER_OPTIONS[config[CONF_IIR_FILTER]]))
 
     if CONF_HEATER in config:
-        conf = config[CONF_HEATER]
-        if not conf:
-            cg.add(var.set_heater(0, 0))
-        else:
+        if conf := config[CONF_HEATER]:
             cg.add(var.set_heater(conf[CONF_TEMPERATURE], conf[CONF_DURATION]))
+        else:
+            cg.add(var.set_heater(0, 0))

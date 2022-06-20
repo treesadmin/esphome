@@ -47,7 +47,7 @@ async def to_code(config):
         if data_rate_khz < 1000:
             data_rate = cg.RawExpression(f"DATA_RATE_KHZ({data_rate_khz})")
         else:
-            data_rate_mhz = int(data_rate_khz / 1000)
+            data_rate_mhz = data_rate_khz // 1000
             data_rate = cg.RawExpression(f"DATA_RATE_MHZ({data_rate_mhz})")
     template_args = cg.TemplateArguments(
         cg.RawExpression(config[CONF_CHIPSET]),

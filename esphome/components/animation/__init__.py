@@ -48,12 +48,11 @@ async def to_code(config):
     if CONF_RESIZE in config:
         image.thumbnail(config[CONF_RESIZE])
         width, height = image.size
-    else:
-        if width > 500 or height > 500:
-            _LOGGER.warning(
-                "The image you requested is very big. Please consider using"
-                " the resize parameter."
-            )
+    elif width > 500 or height > 500:
+        _LOGGER.warning(
+            "The image you requested is very big. Please consider using"
+            " the resize parameter."
+        )
 
     if config[CONF_TYPE] == "GRAYSCALE":
         data = [0 for _ in range(height * width * frames)]

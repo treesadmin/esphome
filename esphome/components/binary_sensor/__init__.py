@@ -192,8 +192,11 @@ DEFAULT_TIME_ON = "900ms"
 async def autorepeat_filter_to_code(config, filter_id):
     timings = []
     if len(config) > 0:
-        for conf in config:
-            timings.append((conf[CONF_DELAY], conf[CONF_TIME_OFF], conf[CONF_TIME_ON]))
+        timings.extend(
+            (conf[CONF_DELAY], conf[CONF_TIME_OFF], conf[CONF_TIME_ON])
+            for conf in config
+        )
+
     else:
         timings.append(
             (
@@ -231,17 +234,17 @@ def parse_multi_click_timing_str(value):
     parts = value.lower().split(" ")
     if len(parts) != 5:
         raise cv.Invalid(
-            "Multi click timing grammar consists of exactly 5 words, not {}"
-            "".format(len(parts))
+            f"Multi click timing grammar consists of exactly 5 words, not {len(parts)}"
         )
+
     try:
         state = cv.boolean(parts[0])
     except cv.Invalid:
         # pylint: disable=raise-missing-from
-        raise cv.Invalid("First word must either be ON or OFF, not {}".format(parts[0]))
+        raise cv.Invalid(f"First word must either be ON or OFF, not {parts[0]}")
 
     if parts[1] != "for":
-        raise cv.Invalid("Second word must be 'for', got {}".format(parts[1]))
+        raise cv.Invalid(f"Second word must be 'for', got {parts[1]}")
 
     if parts[2] == "at":
         if parts[3] == "least":
@@ -250,9 +253,9 @@ def parse_multi_click_timing_str(value):
             key = CONF_MAX_LENGTH
         else:
             raise cv.Invalid(
-                "Third word after at must either be 'least' or 'most', got {}"
-                "".format(parts[3])
+                f"Third word after at must either be 'least' or 'most', got {parts[3]}"
             )
+
         try:
             length = cv.positive_time_period_milliseconds(parts[4])
         except cv.Invalid as err:
@@ -290,20 +293,20 @@ def validate_multi_click_timing(value):
         max_length = v_.get(CONF_MAX_LENGTH)
         if min_length is None and max_length is None:
             raise cv.Invalid("At least one of min_length and max_length is required!")
-        if min_length is None and max_length is not None:
+        if min_length is None:
             min_length = core.TimePeriodMilliseconds(milliseconds=0)
 
         new_state = v_.get(CONF_STATE, not state)
         if new_state == state:
             raise cv.Invalid(
-                "Timings must have alternating state. Indices {} and {} have "
-                "the same state {}".format(i, i + 1, state)
+                f"Timings must have alternating state. Indices {i} and {i + 1} have the same state {state}"
             )
+
         if max_length is not None and max_length < min_length:
             raise cv.Invalid(
-                "Max length ({}) must be larger than min length ({})."
-                "".format(max_length, min_length)
+                f"Max length ({max_length}) must be larger than min length ({min_length})."
             )
+
 
         state = new_state
         tim = {
@@ -412,16 +415,16 @@ async def setup_binary_sensor_core_(var, config):
         await automation.build_automation(trigger, [], conf)
 
     for conf in config.get(CONF_ON_MULTI_CLICK, []):
-        timings = []
-        for tim in conf[CONF_TIMING]:
-            timings.append(
-                cg.StructInitializer(
-                    MultiClickTriggerEvent,
-                    ("state", tim[CONF_STATE]),
-                    ("min_length", tim[CONF_MIN_LENGTH]),
-                    ("max_length", tim.get(CONF_MAX_LENGTH, 4294967294)),
-                )
+        timings = [
+            cg.StructInitializer(
+                MultiClickTriggerEvent,
+                ("state", tim[CONF_STATE]),
+                ("min_length", tim[CONF_MIN_LENGTH]),
+                ("max_length", tim.get(CONF_MAX_LENGTH, 4294967294)),
             )
+            for tim in conf[CONF_TIMING]
+        ]
+
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var, timings)
         if CONF_INVALID_COOLDOWN in conf:
             cg.add(trigger.set_invalid_cooldown(conf[CONF_INVALID_COOLDOWN]))

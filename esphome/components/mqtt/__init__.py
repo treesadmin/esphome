@@ -198,14 +198,13 @@ CONFIG_SCHEMA = cv.All(
 def exp_mqtt_message(config):
     if config is None:
         return cg.optional(cg.TemplateArguments(MQTTMessage))
-    exp = cg.StructInitializer(
+    return cg.StructInitializer(
         MQTTMessage,
         ("topic", config[CONF_TOPIC]),
         ("payload", config.get(CONF_PAYLOAD, "")),
         ("qos", config[CONF_QOS]),
         ("retain", config[CONF_RETAIN]),
     )
-    return exp
 
 
 @coroutine_with_priority(40.0)
@@ -238,37 +237,34 @@ async def to_code(config):
 
     cg.add(var.set_topic_prefix(config[CONF_TOPIC_PREFIX]))
 
-    birth_message = config[CONF_BIRTH_MESSAGE]
-    if not birth_message:
-        cg.add(var.disable_birth_message())
-    else:
+    if birth_message := config[CONF_BIRTH_MESSAGE]:
         cg.add(var.set_birth_message(exp_mqtt_message(birth_message)))
-    will_message = config[CONF_WILL_MESSAGE]
-    if not will_message:
-        cg.add(var.disable_last_will())
     else:
+        cg.add(var.disable_birth_message())
+    if will_message := config[CONF_WILL_MESSAGE]:
         cg.add(var.set_last_will(exp_mqtt_message(will_message)))
-    shutdown_message = config[CONF_SHUTDOWN_MESSAGE]
-    if not shutdown_message:
-        cg.add(var.disable_shutdown_message())
     else:
+        cg.add(var.disable_last_will())
+    if shutdown_message := config[CONF_SHUTDOWN_MESSAGE]:
         cg.add(var.set_shutdown_message(exp_mqtt_message(shutdown_message)))
 
-    log_topic = config[CONF_LOG_TOPIC]
-    if not log_topic:
-        cg.add(var.disable_log_message())
     else:
+        cg.add(var.disable_shutdown_message())
+    if log_topic := config[CONF_LOG_TOPIC]:
         cg.add(var.set_log_message_template(exp_mqtt_message(log_topic)))
 
         if CONF_LEVEL in log_topic:
             cg.add(var.set_log_level(logger.LOG_LEVELS[log_topic[CONF_LEVEL]]))
 
+    else:
+        cg.add(var.disable_log_message())
     if CONF_SSL_FINGERPRINTS in config:
         for fingerprint in config[CONF_SSL_FINGERPRINTS]:
             arr = [
-                cg.RawExpression("0x{}".format(fingerprint[i : i + 2]))
+                cg.RawExpression(f"0x{fingerprint[i : i + 2]}")
                 for i in range(0, 40, 2)
             ]
+
             cg.add(var.add_ssl_fingerprint(arr))
         cg.add_build_flag("-DASYNC_TCP_SSL_ENABLED=1")
 
@@ -353,9 +349,7 @@ def get_default_topic_for(data, component_type, name, suffix):
     sanitized_name = "".join(
         x for x in name.lower().replace(" ", "_") if x in allowlist
     )
-    return "{}/{}/{}/{}".format(
-        data.topic_prefix, component_type, sanitized_name, suffix
-    )
+    return f"{data.topic_prefix}/{component_type}/{sanitized_name}/{suffix}"
 
 
 async def register_mqtt_component(var, config):
@@ -370,10 +364,7 @@ async def register_mqtt_component(var, config):
     if CONF_COMMAND_TOPIC in config:
         cg.add(var.set_custom_command_topic(config[CONF_COMMAND_TOPIC]))
     if CONF_AVAILABILITY in config:
-        availability = config[CONF_AVAILABILITY]
-        if not availability:
-            cg.add(var.disable_availability())
-        else:
+        if availability := config[CONF_AVAILABILITY]:
             cg.add(
                 var.set_availability(
                     availability[CONF_TOPIC],
@@ -381,6 +372,8 @@ async def register_mqtt_component(var, config):
                     availability[CONF_PAYLOAD_NOT_AVAILABLE],
                 )
             )
+        else:
+            cg.add(var.disable_availability())
 
 
 @automation.register_condition(

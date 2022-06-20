@@ -279,9 +279,7 @@ def eap_auth(config):
 
 
 def safe_ip(ip):
-    if ip is None:
-        return IPAddress(0, 0, 0, 0)
-    return IPAddress(*ip.args)
+    return IPAddress(0, 0, 0, 0) if ip is None else IPAddress(*ip.args)
 
 
 def manual_ip(config):

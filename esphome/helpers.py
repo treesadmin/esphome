@@ -75,9 +75,7 @@ def mkdir_p(path):
     except OSError as err:
         import errno
 
-        if err.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
+        if err.errno != errno.EEXIST or not os.path.isdir(path):
             from esphome.core import EsphomeError
 
             raise EsphomeError(f"Error creating directories {path}: {err}") from err
@@ -107,7 +105,7 @@ def _resolve_with_zeroconf(host):
             "host network mode?"
         ) from err
     try:
-        info = zc.resolve_host(host + ".")
+        info = zc.resolve_host(f"{host}.")
     except Exception as err:
         raise EsphomeError(f"Error resolving mDNS hostname: {err}") from err
     finally:
@@ -136,9 +134,7 @@ def resolve_ip_address(host):
         return socket.gethostbyname(host)
     except OSError as err:
         errs.append(str(err))
-        raise EsphomeError(
-            "Error resolving IP address: {}" "".format(", ".join(errs))
-        ) from err
+        raise EsphomeError(f'Error resolving IP address: {", ".join(errs)}') from err
 
 
 def get_bool_env(var, default=False):
@@ -159,11 +155,7 @@ def read_file(path):
     try:
         with codecs.open(path, "r", encoding="utf-8") as f_handle:
             return f_handle.read()
-    except OSError as err:
-        from esphome.core import EsphomeError
-
-        raise EsphomeError(f"Error reading file {path}: {err}") from err
-    except UnicodeDecodeError as err:
+    except (OSError, UnicodeDecodeError) as err:
         from esphome.core import EsphomeError
 
         raise EsphomeError(f"Error reading file {path}: {err}") from err
@@ -215,9 +207,7 @@ def write_file_if_changed(path: Union[Path, str], text: str):
     if not isinstance(path, Path):
         path = Path(path)
 
-    src_content = None
-    if path.is_file():
-        src_content = read_file(path)
+    src_content = read_file(path) if path.is_file() else None
     if src_content != text:
         write_file(path, text)
 

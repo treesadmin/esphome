@@ -78,5 +78,4 @@ def get_arduino_framework_version():
         raise ValueError("Platform not supported yet for this validator")
 
     reverse_map = {v: k for k, v in version_map.items()}
-    framework_version = reverse_map.get(version)
-    return framework_version
+    return reverse_map.get(version)

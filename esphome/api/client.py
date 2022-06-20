@@ -73,11 +73,7 @@ def _varuint_to_bytes(value):
     while value:
         temp = value & 0x7F
         value >>= 7
-        if value:
-            ret += bytes([temp | 0x80])
-        else:
-            ret += bytes([temp])
-
+        ret += bytes([temp | 0x80]) if value else bytes([temp])
     return ret
 
 

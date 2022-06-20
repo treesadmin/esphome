@@ -99,7 +99,7 @@ class RedirectText:
         if filter_lines is None:
             self._filter_pattern = None
         else:
-            pattern = r"|".join(r"(?:" + pattern + r")" for pattern in filter_lines)
+            pattern = r"|".join(f"(?:{pattern})" for pattern in filter_lines)
             self._filter_pattern = re.compile(pattern)
         self._line_buffer = ""
 

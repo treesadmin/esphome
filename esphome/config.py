@@ -42,7 +42,7 @@ def iter_components(config):
             yield domain, component, conf
         if component.is_platform_component:
             for p_config in conf:
-                p_name = "{}.{}".format(domain, p_config[CONF_PLATFORM])
+                p_name = f"{domain}.{p_config[CONF_PLATFORM]}"
                 platform = get_platform(domain, p_config[CONF_PLATFORM])
                 yield p_name, platform, p_config
 
@@ -51,9 +51,7 @@ ConfigPath = List[Union[str, int]]
 
 
 def _path_begins_with(path, other):  # type: (ConfigPath, ConfigPath) -> bool
-    if len(path) < len(other):
-        return False
-    return path[: len(other)] == other
+    return False if len(path) < len(other) else path[: len(other)] == other
 
 
 class Config(OrderedDict, fv.FinalValidateConfig):
@@ -105,11 +103,7 @@ class Config(OrderedDict, fv.FinalValidateConfig):
         self.output_paths.remove((path, domain))
 
     def is_in_error_path(self, path):
-        # type: (ConfigPath) -> bool
-        for err in self.errors:
-            if _path_begins_with(err.path, path):
-                return True
-        return False
+        return any(_path_begins_with(err.path, path) for err in self.errors)
 
     def set_by_path(self, path, value):
         conf = self
@@ -118,11 +112,14 @@ class Config(OrderedDict, fv.FinalValidateConfig):
         conf[path[-1]] = value
 
     def get_error_for_path(self, path):
-        # type: (ConfigPath) -> Optional[vol.Invalid]
-        for err in self.errors:
-            if self.get_deepest_path(err.path) == path:
-                return err
-        return None
+        return next(
+            (
+                err
+                for err in self.errors
+                if self.get_deepest_path(err.path) == path
+            ),
+            None,
+        )
 
     def get_deepest_document_range_for_path(self, path):
         # type: (ConfigPath) -> Optional[ESPHomeDataBase]
@@ -238,15 +235,12 @@ def do_id_pass(result):  # type: (Config) -> None
                 # No declared ID with this name
                 import difflib
 
-                error = (
-                    "Couldn't find ID '{}'. Please check you have defined "
-                    "an ID with that name in your configuration.".format(id.id)
-                )
-                # Find candidates
-                matches = difflib.get_close_matches(
-                    id.id, [v[0].id for v in result.declare_ids if v[0].is_manual]
-                )
-                if matches:
+                error = f"Couldn't find ID '{id.id}'. Please check you have defined an ID with that name in your configuration."
+
+                if matches := difflib.get_close_matches(
+                    id.id,
+                    [v[0].id for v in result.declare_ids if v[0].is_manual],
+                ):
                     matches_s = ", ".join(f'"{x}"' for x in matches)
                     error += f" These IDs look similar: {matches_s}."
                 result.add_str_error(error, path)
@@ -257,44 +251,47 @@ def do_id_pass(result):  # type: (Config) -> None
                 continue
             if not match.type.inherits_from(id.type):
                 result.add_str_error(
-                    "ID '{}' of type {} doesn't inherit from {}. Please "
-                    "double check your ID is pointing to the correct value"
-                    "".format(id.id, match.type, id.type),
+                    f"ID '{id.id}' of type {match.type} doesn't inherit from {id.type}. Please double check your ID is pointing to the correct value",
                     path,
                 )
+
 
         if id.id is None and id.type is not None:
             matches = []
             for v in result.declare_ids:
                 if v[0] is None or not isinstance(v[0].type, MockObjClass):
                     continue
-                inherits = v[0].type.inherits_from(id.type)
-                if inherits:
+                if inherits := v[0].type.inherits_from(id.type):
                     matches.append(v[0])
 
-            if len(matches) == 0:
+            if (
+                matches
+                and len(matches) != 1
+                and len(matches) > 1
+                and str(id.type) == "time::RealTimeClock"
+                or matches
+                and len(matches) == 1
+            ):
+                id.id = matches[0].id
+            elif len(matches) != 0 and len(matches) > 1:
+                manual_declared_count = sum(bool(m.is_manual) for m in matches)
+                if manual_declared_count > 0:
+                    ids = ", ".join([f"'{m.id}'" for m in matches if m.is_manual])
+                    result.add_str_error(
+                        f"Too many candidates found for '{path[-1]}' type '{id.type}' {'Some are' if manual_declared_count > 1 else 'One is'} {ids}",
+                        path,
+                    )
+                else:
+                    result.add_str_error(
+                        f"Too many candidates found for '{path[-1]}' type '{id.type}' You must assign an explicit ID to the parent component you want to use.",
+                        path,
+                    )
+
+            elif not matches:
                 result.add_str_error(
                     f"Couldn't find any component that can be used for '{id.type}'. Are you missing a hub declaration?",
                     path,
                 )
-            elif len(matches) == 1:
-                id.id = matches[0].id
-            elif len(matches) > 1:
-                if str(id.type) == "time::RealTimeClock":
-                    id.id = matches[0].id
-                else:
-                    manual_declared_count = sum(1 for m in matches if m.is_manual)
-                    if manual_declared_count > 0:
-                        ids = ", ".join([f"'{m.id}'" for m in matches if m.is_manual])
-                        result.add_str_error(
-                            f"Too many candidates found for '{path[-1]}' type '{id.type}' {'Some are' if manual_declared_count > 1 else 'One is'} {ids}",
-                            path,
-                        )
-                    else:
-                        result.add_str_error(
-                            f"Too many candidates found for '{path[-1]}' type '{id.type}' You must assign an explicit ID to the parent component you want to use.",
-                            path,
-                        )
 
 
 def recursive_check_replaceme(value):
@@ -302,8 +299,6 @@ def recursive_check_replaceme(value):
         return cv.Schema([recursive_check_replaceme])(value)
     if isinstance(value, dict):
         return cv.Schema({cv.valid: recursive_check_replaceme})(value)
-    if isinstance(value, ESPForceValue):
-        pass
     if isinstance(value, str) and value == "REPLACEME":
         raise cv.Invalid(
             "Found 'REPLACEME' in configuration, this is most likely an error. "
@@ -493,9 +488,9 @@ def validate_config(config, command_line_substitutions):
         for dependency in comp.dependencies:
             if dependency not in config:
                 result.add_str_error(
-                    "Component {} requires component {}" "".format(domain, dependency),
-                    path,
+                    f"Component {domain} requires component {dependency}", path
                 )
+
                 success = False
         if not success:
             continue
@@ -504,19 +499,20 @@ def validate_config(config, command_line_substitutions):
         for conflict in comp.conflicts_with:
             if conflict in config:
                 result.add_str_error(
-                    "Component {} cannot be used together with component {}"
-                    "".format(domain, conflict),
+                    f"Component {domain} cannot be used together with component {conflict}",
                     path,
                 )
+
                 success = False
         if not success:
             continue
 
         if CORE.esp_platform not in comp.esp_platforms:
             result.add_str_error(
-                "Component {} doesn't support {}.".format(domain, CORE.esp_platform),
+                f"Component {domain} doesn't support {CORE.esp_platform}.",
                 path,
             )
+
             continue
 
         if (
@@ -525,10 +521,10 @@ def validate_config(config, command_line_substitutions):
             and not isinstance(conf, core.AutoLoad)
         ):
             result.add_str_error(
-                "Component {} cannot be loaded via YAML "
-                "(no CONFIG_SCHEMA).".format(domain),
+                f"Component {domain} cannot be loaded via YAML (no CONFIG_SCHEMA).",
                 path,
             )
+
             continue
 
         if comp.multi_conf:
@@ -536,13 +532,16 @@ def validate_config(config, command_line_substitutions):
                 result[domain] = conf = [conf]
             if not isinstance(comp.multi_conf, bool) and len(conf) > comp.multi_conf:
                 result.add_str_error(
-                    "Component {} supports a maximum of {} "
-                    "entries ({} found).".format(domain, comp.multi_conf, len(conf)),
+                    f"Component {domain} supports a maximum of {comp.multi_conf} entries ({len(conf)} found).",
                     path,
                 )
+
                 continue
-            for i, part_conf in enumerate(conf):
-                validate_queue.append((path + [i], part_conf, comp))
+            validate_queue.extend(
+                (path + [i], part_conf, comp)
+                for i, part_conf in enumerate(conf)
+            )
+
             continue
 
         validate_queue.append((path, conf, comp))
@@ -562,11 +561,9 @@ def validate_config(config, command_line_substitutions):
                     validated = OrderedDict(validated)
                 validated["platform"] = platform_val
                 validated.move_to_end("platform", last=False)
-                result.set_by_path(path, validated)
             else:
                 validated = comp.config_schema(conf)
-                result.set_by_path(path, validated)
-
+            result.set_by_path(path, validated)
     # 6. If no validation errors, check IDs
     if not result.errors:
         # Only parse IDs if no validation error. Otherwise
@@ -605,7 +602,7 @@ def humanize_error(config, validation_error):
         r"^(.*?)\s*(?:for dictionary value )?@ data\[.*$", validation_error, re.DOTALL
     )
     if m is not None:
-        validation_error = m.group(1)
+        validation_error = m[1]
     validation_error = validation_error.strip()
     if not validation_error.endswith("."):
         validation_error += "."
@@ -632,18 +629,16 @@ def _format_vol_invalid(ex, config):
 
     if isinstance(ex, ExtraKeysInvalid):
         if ex.candidates:
-            message += "[{}] is an invalid option for [{}]. Did you mean {}?".format(
-                ex.path[-1], paren, ", ".join(f"[{x}]" for x in ex.candidates)
-            )
+            message += f'[{ex.path[-1]}] is an invalid option for [{paren}]. Did you mean {", ".join((f"[{x}]" for x in ex.candidates))}?'
+
         else:
-            message += "[{}] is an invalid option for [{}]. Please check the indentation.".format(
-                ex.path[-1], paren
-            )
+            message += f"[{ex.path[-1]}] is an invalid option for [{paren}]. Please check the indentation."
+
     elif "extra keys not allowed" in str(ex):
-        message += "[{}] is an invalid option for [{}].".format(ex.path[-1], paren)
+        message += f"[{ex.path[-1]}] is an invalid option for [{paren}]."
     elif isinstance(ex, vol.RequiredFieldInvalid):
         if ex.msg == "required key not provided":
-            message += "'{}' is a required option for [{}].".format(ex.path[-1], paren)
+            message += f"'{ex.path[-1]}' is a required option for [{paren}]."
         else:
             # Required has set a custom error message
             message += ex.msg
@@ -693,10 +688,9 @@ def line_info(config, path, highlight=True):
     """Display line config source."""
     if not highlight:
         return None
-    obj = config.get_deepest_document_range_for_path(path)
-    if obj:
+    if obj := config.get_deepest_document_range_for_path(path):
         mark = obj.start_mark
-        source = "[source {}:{}]".format(mark.document, mark.line + 1)
+        source = f"[source {mark.document}:{mark.line + 1}]"
         return color(Fore.CYAN, source)
     return "None"
 
@@ -777,14 +771,11 @@ def dump_dict(config, path, at_root=True):
                 msg = "\n" + indent(msg)
 
             if inf is not None:
-                if m:
-                    msg = " " + inf + msg
-                else:
-                    msg = msg + " " + inf
+                msg = f" {inf}{msg}" if m else f"{msg} {inf}"
             ret += st + msg + "\n"
     elif isinstance(conf, str):
         if is_secret(conf):
-            conf = "!secret {}".format(is_secret(conf))
+            conf = f"!secret {is_secret(conf)}"
         if not conf:
             conf += "''"
 
@@ -795,15 +786,13 @@ def dump_dict(config, path, at_root=True):
         ret += color(col, str(conf))
     elif isinstance(conf, core.Lambda):
         if is_secret(conf):
-            conf = "!secret {}".format(is_secret(conf))
+            conf = f"!secret {is_secret(conf)}"
 
         conf = "!lambda |-\n" + indent(str(conf.value))
         error = config.get_error_for_path(path)
         col = Fore.BOLD_RED if error else Fore.KEEP
         ret += color(col, conf)
-    elif conf is None:
-        pass
-    else:
+    elif conf is not None:
         error = config.get_error_for_path(path)
         col = Fore.BOLD_RED if error else Fore.KEEP
         ret += color(col, str(conf))
@@ -854,9 +843,8 @@ def read_config(command_line_substitutions):
                 continue
 
             errstr = color(Fore.BOLD_RED, f"{domain}:")
-            errline = line_info(res, path)
-            if errline:
-                errstr += " " + errline
+            if errline := line_info(res, path):
+                errstr += f" {errline}"
             safe_print(errstr)
             safe_print(indent(dump_dict(res, path)[0]))
         return None

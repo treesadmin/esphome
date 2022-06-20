@@ -38,9 +38,8 @@ def validate_type(value):
         raise cv.Invalid("Must have G in type")
     if "B" not in value:
         raise cv.Invalid("Must have B in type")
-    rest = set(value) - set("RGBW")
-    if rest:
-        raise cv.Invalid("Type has invalid color: {}".format(", ".join(rest)))
+    if rest := set(value) - set("RGBW"):
+        raise cv.Invalid(f'Type has invalid color: {", ".join(rest)}')
     if len(set(value)) != len(value):
         raise cv.Invalid("Type has duplicate color!")
     return value
@@ -80,13 +79,14 @@ def validate_method_pin(value):
         "ESP8266_ASYNC_UART0": [1],
         "ESP8266_UART1": [2],
         "ESP8266_ASYNC_UART1": [2],
-        "ESP32_I2S_0": list(range(0, 32)),
-        "ESP32_I2S_1": list(range(0, 32)),
+        "ESP32_I2S_0": list(range(32)),
+        "ESP32_I2S_1": list(range(32)),
     }
+
     if CORE.is_esp8266:
-        method_pins["BIT_BANG"] = list(range(0, 16))
+        method_pins["BIT_BANG"] = list(range(16))
     elif CORE.is_esp32:
-        method_pins["BIT_BANG"] = list(range(0, 32))
+        method_pins["BIT_BANG"] = list(range(32))
     pins_ = method_pins.get(method)
     if pins_ is None:
         # all pins allowed for this method
@@ -95,11 +95,10 @@ def validate_method_pin(value):
     for opt in (CONF_PIN, CONF_CLOCK_PIN, CONF_DATA_PIN):
         if opt in value and value[opt] not in pins_:
             raise cv.Invalid(
-                "Method {} only supports pin(s) {}".format(
-                    method, ", ".join(f"GPIO{x}" for x in pins_)
-                ),
+                f'Method {method} only supports pin(s) {", ".join((f"GPIO{x}" for x in pins_))}',
                 path=[CONF_METHOD],
             )
+
     return value
 
 
@@ -139,7 +138,7 @@ def format_method(config):
 
     if config[CONF_INVERT]:
         if method == "ESP8266_DMA":
-            variant = "Inverted" + variant
+            variant = f"Inverted{variant}"
         else:
             variant += "Inverted"
 

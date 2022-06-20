@@ -76,8 +76,7 @@ def coroutine(func: Callable[..., Any]) -> Callable[..., Awaitable[Any]]:
         @functools.wraps(func)
         def coro(*args, **kwargs):
             gen = func(*args, **kwargs)
-            ret = yield from _flatten_generator(gen)
-            return ret
+            return (yield from _flatten_generator(gen))
 
     else:
         # A "normal" function with no `yield` statements, convert to generator
@@ -116,14 +115,7 @@ def _flatten_generator(gen: Generator[Any, Any, Any]):
             # Run until next yield expression
             val = gen.send(to_send)
         except StopIteration as e:
-            # return statement or end of function
-
-            # From py3.3, return with a value is allowed in generators,
-            # and return value is transported in the value field of the exception.
-            # If we find a value in the exception, use that as the return value,
-            # otherwise use the value from the last yield statement ("old style")
-            ret = to_send if e.value is None else e.value
-            return ret
+            return to_send if e.value is None else e.value
 
         if isinstance(val, collections.abc.Awaitable):
             # yielded object that is awaitable (like `yield some_new_style_method()`)
@@ -155,8 +147,7 @@ class FakeAwaitable:
         self._gen = gen
 
     def __await__(self):
-        ret = yield from self._gen
-        return ret
+        return (yield from self._gen)
 
 
 @functools.total_ordering

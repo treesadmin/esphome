@@ -15,6 +15,6 @@ for line in config['common']['lib_deps'].splitlines():
     m = re.search(r'([a-zA-Z0-9-_/]+@[0-9\.]+)', line)
     if m is None:
         continue
-    libs.append(m.group(1))
+    libs.append(m[1])
 
 subprocess.check_call(['platformio', 'lib', '-g', 'install', *libs])

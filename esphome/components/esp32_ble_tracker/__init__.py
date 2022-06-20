@@ -51,9 +51,9 @@ def validate_scan_parameters(config):
 
     if window > interval:
         raise cv.Invalid(
-            "Scan window ({}) needs to be smaller than scan interval ({})"
-            "".format(window, interval)
+            f"Scan window ({window}) needs to be smaller than scan interval ({interval})"
         )
+
 
     if interval.total_milliseconds * 3 > duration.total_milliseconds:
         raise cv.Invalid(
@@ -97,9 +97,7 @@ def bt_uuid(value):
             )
         return value
     raise cv.Invalid(
-        "Service UUID must be in 16 bit '{}', 32 bit '{}', or 128 bit '{}' format".format(
-            bt_uuid16_format, bt_uuid32_format, bt_uuid128_format
-        )
+        f"Service UUID must be in 16 bit '{bt_uuid16_format}', 32 bit '{bt_uuid32_format}', or 128 bit '{bt_uuid128_format}' format"
     )
 
 

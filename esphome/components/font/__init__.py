@@ -61,9 +61,9 @@ def validate_pillow_installed(value):
 def validate_truetype_file(value):
     if value.endswith(".zip"):  # for Google Fonts downloads
         raise cv.Invalid(
-            "Please unzip the font archive '{}' first and then use the .ttf files "
-            "inside.".format(value)
+            f"Please unzip the font archive '{value}' first and then use the .ttf files inside."
         )
+
     if not value.endswith(".ttf"):
         raise cv.Invalid(
             "Only truetype (.ttf) files are supported. Please make sure you're "
@@ -123,22 +123,23 @@ async def to_code(config):
     rhs = [HexInt(x) for x in data]
     prog_arr = cg.progmem_array(config[CONF_RAW_DATA_ID], rhs)
 
-    glyph_initializer = []
-    for glyph in config[CONF_GLYPHS]:
-        glyph_initializer.append(
-            cg.StructInitializer(
-                GlyphData,
-                ("a_char", glyph),
-                (
-                    "data",
-                    cg.RawExpression(str(prog_arr) + " + " + str(glyph_args[glyph][0])),
+    glyph_initializer = [
+        cg.StructInitializer(
+            GlyphData,
+            ("a_char", glyph),
+            (
+                "data",
+                cg.RawExpression(
+                    f"{str(prog_arr)} + {str(glyph_args[glyph][0])}"
                 ),
-                ("offset_x", glyph_args[glyph][1]),
-                ("offset_y", glyph_args[glyph][2]),
-                ("width", glyph_args[glyph][3]),
-                ("height", glyph_args[glyph][4]),
-            )
+            ),
+            ("offset_x", glyph_args[glyph][1]),
+            ("offset_y", glyph_args[glyph][2]),
+            ("width", glyph_args[glyph][3]),
+            ("height", glyph_args[glyph][4]),
         )
+        for glyph in config[CONF_GLYPHS]
+    ]
 
     glyphs = cg.static_const_array(config[CONF_RAW_GLYPH_ID], glyph_initializer)
 

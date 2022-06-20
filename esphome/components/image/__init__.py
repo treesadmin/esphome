@@ -53,23 +53,19 @@ async def to_code(config):
     if CONF_RESIZE in config:
         image.thumbnail(config[CONF_RESIZE])
         width, height = image.size
-    else:
-        if width > 500 or height > 500:
-            _LOGGER.warning(
-                "The image you requested is very big. Please consider using"
-                " the resize parameter."
-            )
+    elif width > 500 or height > 500:
+        _LOGGER.warning(
+            "The image you requested is very big. Please consider using"
+            " the resize parameter."
+        )
 
     dither = Image.NONE if config[CONF_DITHER] == "NONE" else Image.FLOYDSTEINBERG
     if config[CONF_TYPE] == "GRAYSCALE":
         image = image.convert("L", dither=dither)
         pixels = list(image.getdata())
         data = [0 for _ in range(height * width)]
-        pos = 0
-        for pix in pixels:
+        for pos, pix in enumerate(pixels):
             data[pos] = pix
-            pos += 1
-
     elif config[CONF_TYPE] == "RGB24":
         image = image.convert("RGB")
         pixels = list(image.getdata())

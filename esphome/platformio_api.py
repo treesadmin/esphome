@@ -48,7 +48,7 @@ FILTER_PLATFORMIO_LINES = [
     r"PACKAGES: .*",
     r"LDF: Library Dependency Finder -> http://bit.ly/configure-pio-ldf.*",
     r"LDF Modes: Finder ~ chain, Compatibility ~ soft.*",
-    r"Looking for " + IGNORE_LIB_WARNINGS + r" library in registry",
+    f"Looking for {IGNORE_LIB_WARNINGS} library in registry",
     r"Warning! Library `.*'"
     + IGNORE_LIB_WARNINGS
     + r".*` has not been found in PlatformIO Registry.",
@@ -219,7 +219,7 @@ def process_stacktrace(config, line, backtrace_state):
     # ESP8266 Exception type
     match = re.match(STACKTRACE_ESP8266_EXCEPTION_TYPE_RE, line)
     if match is not None:
-        code = int(match.group(1))
+        code = int(match[1])
         _LOGGER.warning(
             "Exception type: %s", ESP8266_EXCEPTION_CODES.get(code, "unknown")
         )
@@ -238,9 +238,10 @@ def process_stacktrace(config, line, backtrace_state):
     match = re.match(STACKTRACE_BAD_ALLOC_RE, line)
     if match is not None:
         _LOGGER.warning(
-            "Memory allocation of %s bytes failed at %s", match.group(2), match.group(1)
+            "Memory allocation of %s bytes failed at %s", match[2], match[1]
         )
-        _decode_pc(config, match.group(1))
+
+        _decode_pc(config, match[1])
 
     # ESP32 single-line backtrace
     match = re.match(STACKTRACE_ESP32_BACKTRACE_RE, line)
@@ -267,10 +268,7 @@ def process_stacktrace(config, line, backtrace_state):
 
 class IDEData:
     def __init__(self, raw):
-        if not isinstance(raw, dict):
-            self.raw = {}
-        else:
-            self.raw = raw
+        self.raw = raw if isinstance(raw, dict) else {}
 
     @property
     def firmware_elf_path(self):
@@ -296,6 +294,6 @@ class IDEData:
 
         # Windows
         if cc_path.endswith(".exe"):
-            return cc_path[:-7] + "addr2line.exe"
+            return f"{cc_path[:-7]}addr2line.exe"
 
-        return cc_path[:-3] + "addr2line"
+        return f"{cc_path[:-3]}addr2line"

@@ -276,7 +276,7 @@ def get_ini_content():
     # Ignore libraries that are not explicitly used, but may
     # be added by LDF
     # data['lib_ldf_mode'] = 'chain'
-    data.update(overrides)
+    data |= overrides
 
     content = f"[env:{CORE.name}]\n"
     content += format_ini(data)
@@ -361,17 +361,16 @@ or use the custom_components folder.
 def copy_src_tree():
     source_files: Dict[Path, loader.SourceFile] = {}
     for _, component, _ in iter_components(CORE.config):
-        source_files.update(component.source_files)
+        source_files |= component.source_files
 
-    # Convert to list and sort
-    source_files_l = list(source_files.items())
-    source_files_l.sort()
-
+    source_files_l = sorted(source_files.items())
     # Build #include list for esphome.h
-    include_l = []
-    for target, _ in source_files_l:
-        if target.suffix in HEADER_FILE_EXTENSIONS:
-            include_l.append(f'#include "{target}"')
+    include_l = [
+        f'#include "{target}"'
+        for target, _ in source_files_l
+        if target.suffix in HEADER_FILE_EXTENSIONS
+    ]
+
     include_l.append("")
     include_s = "\n".join(include_l)
 

@@ -15,9 +15,8 @@ CONF_ON_FRAME = "on_frame"
 
 
 def validate_id(id_value, id_ext):
-    if not id_ext:
-        if id_value > 0x7FF:
-            raise cv.Invalid("Standard IDs must be 11 Bit (0x000-0x7ff / 0-2047)")
+    if not id_ext and id_value > 0x7FF:
+        raise cv.Invalid("Standard IDs must be 11 Bit (0x000-0x7ff / 0-2047)")
 
 
 def validate_raw_data(value):

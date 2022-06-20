@@ -14,10 +14,7 @@ def _merge_package(full_old, full_new):
                 res[k] = merge(old[k], v) if k in old else v
             return res
         elif isinstance(new, list):
-            if not isinstance(old, list):
-                return new
-            return old + new
-
+            return old + new if isinstance(old, list) else new
         return new
 
     return merge(full_old, full_new)
@@ -30,9 +27,9 @@ def do_packages_pass(config: dict):
     with cv.prepend_path(CONF_PACKAGES):
         if not isinstance(packages, dict):
             raise cv.Invalid(
-                "Packages must be a key to value mapping, got {} instead"
-                "".format(type(packages))
+                f"Packages must be a key to value mapping, got {type(packages)} instead"
             )
+
 
         for package_name, package_config in packages.items():
             with cv.prepend_path(package_name):
